@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/sorcix/irc"
-	// "io"
+	"io"
 	"io/ioutil"
 	"strings"
 )
@@ -41,6 +41,41 @@ func handshake(conn *irc.Conn) (err error) {
 	})
 }
 
+func handlePing(conn *irc.Conn, message *irc.Message) (err error) {
+	// Ha ha ha this is so dodgy
+	message.Command = "PONG"
+	return conn.Encode(message)
+}
+
+func readPump(conn *irc.Conn) (err error) {
+	var toIgnore = [...]string{"001", "002", "003", "005", "251", "252", "254", "255", "265", "266"}
+	var shouldIgnore = make(map[string]bool, len(toIgnore))
+	for _, num := range toIgnore {
+		shouldIgnore[num] = true
+	}
+	var m *irc.Message
+
+	for {
+		m, err = conn.Decode()
+		if err != nil {
+			return err
+		}
+		// Ignore informative spam
+		if shouldIgnore[m.Command] {
+			continue
+		}
+		// Start of glorious message type switches
+		if m.Command == "PING" {
+			err = handlePing(conn, m)
+			if err != nil {
+				log.Error("Couldn't pong: %s", err)
+			}
+		} else {
+			log.Info("Got message: %+v", m)
+		}
+	}
+}
+
 func main() {
 	fmt.Println("Hello world")
 	// nspass, err := getNSPass()
@@ -58,22 +93,15 @@ func main() {
 		conn.Close()
 		log.Fatalf("Could not handshake: %s", err)
 	}
-	var m *irc.Message
-	for {
-		m, err = conn.Decode()
-		if err != nil {
-			log.Error("Could not read message: %s", err)
-			break
-		}
-		log.Info("Got message: %+v", m)
-		if m.Command == "PING" {
-			m.Command = "PONG"
-			err = conn.Encode(m)
-			if err != nil {
-				log.Error("Couldn't pong: %s", err)
-			}
-		}
+
+	// Blocking
+	err = readPump(conn)
+
+	if err == io.EOF {
+		log.Info("Server hung up")
+	} else if err != nil {
+		log.Critical("Could not read message: %s", err)
 	}
+
 	conn.Close()
-	log.Info("It worked!")
 }
