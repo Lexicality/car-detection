@@ -3,19 +3,9 @@ package main
 import (
 	"github.com/op/go-logging"
 	"io"
-	"io/ioutil"
-	"strings"
 )
 
 var log = logging.MustGetLogger("Random Encounters")
-
-func getNSPass() (string, error) {
-	contents, err := ioutil.ReadFile("nspass")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(contents)), nil
-}
 
 func main() {
 	var err error

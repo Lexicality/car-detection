@@ -82,6 +82,7 @@ func (session *Session) readPump() (err error) {
 			// The server sends 001 002 003 and 004 in fast succession.
 			// It's probably a good idea to wait until #4 happens before doing anything
 			log.Info("Connection established")
+			setupNickserv(session)
 		} else if m.Command == "376" || m.Command == "422" {
 			// MOTD is finished, start harassing people
 			// log.Info("MOTD Complete, fully connected!")
