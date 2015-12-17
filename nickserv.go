@@ -12,14 +12,14 @@ const (
 	nsFileName = "nspass.txt"
 )
 
-func getNSPass() (string, error) {
-	_, err := os.Stat(nsFileName)
+func getNSPass(fileLocation string) (string, error) {
+	_, err := os.Stat(fileLocation)
 	// No NS password
 	if err != nil {
 		log.Warning("No NickServ password specified. Please make a file called %s with your bot's password or blank to disable.", nsFileName)
 		return "", nil
 	}
-	contents, err := ioutil.ReadFile(nsFileName)
+	contents, err := ioutil.ReadFile(fileLocation)
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +27,7 @@ func getNSPass() (string, error) {
 }
 
 func setupNickserv(conn *Session) (err error) {
-	pass, err := getNSPass()
+	pass, err := getNSPass(nsFileName)
 	if err != nil {
 		return fmt.Errorf("Could not load NS password: %s", err)
 	} else if pass == "" {
