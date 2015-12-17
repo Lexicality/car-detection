@@ -66,8 +66,22 @@ func (session *Session) handlePing(message *irc.Message) (err error) {
 	return session.Encode(message)
 }
 
+var toIgnore = [...]string{
+	"002",
+	"003",
+	"004",
+	"005",
+	"251",
+	"252",
+	"254",
+	"255",
+	"265",
+	"266",
+	"376",
+	"422",
+}
+
 func (session *Session) readPump() (err error) {
-	var toIgnore = [...]string{"001", "002", "003", "005", "251", "252", "254", "255", "265", "266"}
 	var shouldIgnore = make(map[string]bool, len(toIgnore))
 	for _, num := range toIgnore {
 		shouldIgnore[num] = true
@@ -85,23 +99,19 @@ func (session *Session) readPump() (err error) {
 		}
 		// Start of glorious message type switches
 		if m.Command == "PING" {
+			log.Debug("Got ping: %s", m.Trailing)
 			err = session.handlePing(m)
 			if err != nil {
 				log.Error("Couldn't pong: %s", err)
 			}
-		} else if m.Command == "004" {
-			// The server sends 001 002 003 and 004 in fast succession.
-			// It's probably a good idea to wait until #4 happens before doing anything
+		} else if m.Command == "001" {
 			log.Info("Connection established")
 			setupNickserv(session)
-		} else if m.Command == "376" || m.Command == "422" {
-			// MOTD is finished, start harassing people
-			// log.Info("MOTD Complete, fully connected!")
 		} else if m.Command == "ERROR" {
 			log.Critical("Server hung up: %s", m.Trailing)
 			return nil
 		} else {
-			log.Info("Got message: %+v", m)
+			log.Debug("Got unhandled message: %+v", m)
 		}
 	}
 }
