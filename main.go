@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not connect to the server: %s", err)
 	}
-	defer session.Close()
+	defer session.Quit("")
 
 	// Blocking
 	err = session.readPump()

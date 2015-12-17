@@ -49,6 +49,17 @@ func (session *Session) Privmsg(name, message string) error {
 	})
 }
 
+func (session *Session) Quit(reason string) error {
+	if reason == "" {
+		reason = "Shutting down"
+	}
+	defer session.Close()
+	return session.Encode(&irc.Message{
+		Command:  "QUIT",
+		Trailing: reason,
+	})
+}
+
 func (session *Session) handlePing(message *irc.Message) (err error) {
 	// Ha ha ha this is so dodgy
 	message.Command = "PONG"
@@ -86,6 +97,9 @@ func (session *Session) readPump() (err error) {
 		} else if m.Command == "376" || m.Command == "422" {
 			// MOTD is finished, start harassing people
 			// log.Info("MOTD Complete, fully connected!")
+		} else if m.Command == "ERROR" {
+			log.Critical("Server hung up: %s", m.Trailing)
+			return nil
 		} else {
 			log.Info("Got message: %+v", m)
 		}
